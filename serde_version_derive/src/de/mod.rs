@@ -1,7 +1,7 @@
-use proc_macro2::{Span, TokenStream};
-use proc_macro_util::prelude::*;
 use crate::ast::attr::PathOrSelf;
 use crate::ast::Container;
+use proc_macro2::{Span, TokenStream};
+use proc_macro_util::prelude::*;
 
 pub fn expand_derive_deserialize_versioned(
     input: &syn::DeriveInput,
@@ -18,9 +18,6 @@ pub fn expand_derive_deserialize_versioned(
                     syn::Lifetime::new("'de", Span::call_site()),
                 )))
                 .into_iter()
-                .chain(Some(syn::GenericParam::Type(
-                    syn::parse2::<syn::TypeParam>(quote! { __VM }).unwrap(),
-                )))
                 .chain(generics.params)
                 .collect();
                 generics
@@ -62,7 +59,7 @@ pub fn expand_derive_deserialize_versioned(
                         };
                         Some(quote! {
                             Some(#version_number) => std::result::Result::map(
-                                <#path as _serde_version::DeserializeVersioned<'_, __VM>>::deserialize_versioned(__deserializer, __version_map),
+                                <::core::marker::PhantomData<#path> as _serde_version::DeserializeVersionedSeed<'_>>::deserialize_versioned(::core::marker::PhantomData, __deserializer, __version_map),
                                 std::convert::Into::into
                             ),
                         })
@@ -81,7 +78,7 @@ pub fn expand_derive_deserialize_versioned(
                         };
                         Some(quote! {
                             Some(#version_number) => std::result::Result::map(
-                                <#path as _serde_version::DeserializeVersioned<'_, __VM>>::next_element(__seq_access, __version_map),
+                                <::core::marker::PhantomData<#path> as _serde_version::DeserializeVersionedSeed<'_>>::next_element(::core::marker::PhantomData, __seq_access, __version_map),
                                 |v| std::option::Option::map(v, std::convert::Into::into)
                             ),
                         })
@@ -100,7 +97,7 @@ pub fn expand_derive_deserialize_versioned(
                         };
                         Some(quote! {
                             Some(#version_number) => std::result::Result::map(
-                                <#path as _serde_version::DeserializeVersioned<'_, __VM>>::next_value(__map_access, __version_map),
+                                <::core::marker::PhantomData<#path> as _serde_version::DeserializeVersionedSeed<'_>>::next_value(::core::marker::PhantomData, __map_access, __version_map),
                                 std::convert::Into::into
                             ),
                         })
@@ -120,7 +117,8 @@ pub fn expand_derive_deserialize_versioned(
                         };
                         Some(quote! {
                             Some(#version_number) => std::result::Result::map(
-                                <#path as _serde_version::DeserializeVersioned<'_, __VM>>::next_key(
+                                <::core::marker::PhantomData<#path> as _serde_version::DeserializeVersionedSeed<'_>>::next_key(
+                                    ::core::marker::PhantomData, 
                                     __map_access,
                                     __version_map
                                 ),
@@ -142,7 +140,8 @@ pub fn expand_derive_deserialize_versioned(
                         };
                         Some(quote! {
                             Some(#version_number) => std::result::Result::map(
-                                <#path as _serde_version::DeserializeVersioned<'_, __VM>>::variant(
+                                <::core::marker::PhantomData<#path> as _serde_version::DeserializeVersionedSeed<'_>>::variant(
+                                    ::core::marker::PhantomData,
                                     __enum_access,
                                     __version_map
                                 ),
@@ -156,8 +155,8 @@ pub fn expand_derive_deserialize_versioned(
                 .collect::<Vec<_>>();
 
             let code = quote! {
-                impl #de_impl_generics _serde_version::DeserializeVersioned<'de, __VM> for #ident #ty_generics #where_clause {
-                    fn deserialize_versioned<__D>(
+                impl #de_impl_generics _serde_version::DeserializeVersioned<'de> for #ident #ty_generics {
+                    fn deserialize_versioned<__D, __VM: _serde_version::VersionMap>(
                         __deserializer: __D,
                         __version_map: __VM,
                     ) -> std::result::Result<Self, _serde_version::Error<__D::Error>>
@@ -177,7 +176,7 @@ pub fn expand_derive_deserialize_versioned(
                     }
 
                     #[inline]
-                    fn next_element<__S>(
+                    fn next_element<__S, __VM: _serde_version::VersionMap>(
                         __seq_access: &mut __S,
                         __version_map: __VM,
                     ) -> std::result::Result<Option<Self>, _serde_version::Error<__S::Error>>
@@ -200,7 +199,7 @@ pub fn expand_derive_deserialize_versioned(
                     }
 
                     #[inline]
-                    fn next_value<__M>(
+                    fn next_value<__M, __VM: _serde_version::VersionMap>(
                         __map_access: &mut __M,
                         __version_map: __VM,
                     ) -> std::result::Result<Self, _serde_version::Error<__M::Error>>
@@ -223,7 +222,7 @@ pub fn expand_derive_deserialize_versioned(
                     }
 
                     #[inline]
-                    fn next_key<__M>(
+                    fn next_key<__M, __VM: _serde_version::VersionMap>(
                         __map_access: &mut __M,
                         __version_map: __VM,
                     ) -> std::result::Result<Option<Self>, _serde_version::Error<__M::Error>>
@@ -246,7 +245,7 @@ pub fn expand_derive_deserialize_versioned(
                     }
 
                     #[inline]
-                    fn variant<__E>(
+                    fn variant<__E, __VM: _serde_version::VersionMap>(
                         __enum_access: __E,
                         __version_map: __VM,
                     ) -> std::result::Result<(Self, __E::Variant), _serde_version::Error<__E::Error>>
@@ -266,6 +265,11 @@ pub fn expand_derive_deserialize_versioned(
                                 }
                             )),
                         }
+                    }
+
+                    #[inline]
+                    fn last_version() -> usize {
+                        #last_version
                     }
                 }
             };

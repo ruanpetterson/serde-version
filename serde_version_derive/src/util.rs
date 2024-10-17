@@ -20,8 +20,8 @@ pub fn get_serde_version_meta_items(attr: &syn::Attribute) -> Option<Vec<syn::Ne
 pub fn wrap_in_const(
     serde_path: Option<&syn::Path>,
     serde_version_path: Option<&syn::Path>,
-    trait_: &str,
-    ty: &Ident,
+    _trait_: &str,
+    _ty: &Ident,
     code: TokenStream,
 ) -> TokenStream {
     fn use_(path: Option<&syn::Path>, source: &syn::Path, alias: &syn::Path) -> TokenStream {
@@ -38,7 +38,7 @@ pub fn wrap_in_const(
         }
     }
 
-    let dummy_const = Ident::new(&format!("_IMPL_{}_FOR_{}", trait_, ty), Span::call_site());
+    let dummy_const = Ident::new("_", Span::call_site());
 
     let use_serde = use_(
         serde_path,

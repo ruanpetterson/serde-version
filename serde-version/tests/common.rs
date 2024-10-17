@@ -42,7 +42,6 @@ pub mod error {
             self.msg == other
         }
     }
-
 }
 
 pub mod de {
@@ -153,9 +152,9 @@ pub mod de {
         type Error = Error;
 
         forward_to_deserialize_any! {
-        bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string
-        bytes byte_buf unit seq map identifier ignored_any
-    }
+            bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string
+            bytes byte_buf unit seq map identifier ignored_any
+        }
 
         fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Error>
         where
@@ -304,15 +303,19 @@ pub mod de {
                 | Token::NewtypeVariant { name: n, .. }
                 | Token::TupleVariant { name: n, .. }
                 | Token::StructVariant { name: n, .. }
-                if name == n =>
-                    {
-                        visitor.visit_enum(DeserializerEnumVisitor { de: self })
-                    }
+                    if name == n =>
+                {
+                    visitor.visit_enum(DeserializerEnumVisitor { de: self })
+                }
                 _ => self.deserialize_any(visitor),
             }
         }
 
-        fn deserialize_unit_struct<V>(self, name: &'static str, visitor: V) -> Result<V::Value, Error>
+        fn deserialize_unit_struct<V>(
+            self,
+            name: &'static str,
+            visitor: V,
+        ) -> Result<V::Value, Error>
         where
             V: Visitor<'de>,
         {
@@ -647,11 +650,15 @@ pub mod de {
             K: DeserializeSeed<'de>,
         {
             match self.variant.take() {
-                Some(Token::Str(variant)) => seed.deserialize(variant.into_deserializer()).map(Some),
+                Some(Token::Str(variant)) => {
+                    seed.deserialize(variant.into_deserializer()).map(Some)
+                }
                 Some(Token::Bytes(variant)) => seed
                     .deserialize(BytesDeserializer { value: variant })
                     .map(Some),
-                Some(Token::U32(variant)) => seed.deserialize(variant.into_deserializer()).map(Some),
+                Some(Token::U32(variant)) => {
+                    seed.deserialize(variant.into_deserializer()).map(Some)
+                }
                 Some(other) => Err(unexpected(other)),
                 None => Ok(None),
             }
@@ -706,12 +713,11 @@ pub mod de {
         }
 
         forward_to_deserialize_any! {
-        bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string
-        bytes byte_buf option unit unit_struct newtype_struct seq tuple
-        tuple_struct map struct enum identifier ignored_any
+            bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string
+            bytes byte_buf option unit unit_struct newtype_struct seq tuple
+            tuple_struct map struct enum identifier ignored_any
+        }
     }
-    }
-
 }
 
 #[macro_export]
@@ -728,7 +734,7 @@ macro_rules! declare_tests_versions {
                 $(
                     let mut de = crate::common::de::Deserializer::new($tokens);
                     let de_versioned = VersionedDeserializer::new(&mut de, version_map);
-                    match <$ty as DeserializeVersioned<'_, _>>::deserialize_versioned(de_versioned, version_map) {
+                    match <::core::marker::PhantomData<$ty> as ::serde_version::DeserializeVersionedSeed<'_>>::deserialize_versioned(::core::marker::PhantomData, de_versioned, version_map) {
                         Ok(_) => {
                             panic!("tokens should have failed to deserialize")
                         }
@@ -753,7 +759,7 @@ macro_rules! declare_tests_versions {
                     // Test ser/de roundtripping
                     let mut de = crate::common::de::Deserializer::new($tokens);
                     let de_versioned = ::serde_version::VersionedDeserializer::new(&mut de, version_map);
-                    match <$ty as ::serde_version::DeserializeVersioned<'_, _>>::deserialize_versioned(de_versioned, version_map) {
+                    match <::core::marker::PhantomData<$ty> as ::serde_version::DeserializeVersionedSeed<'_>>::deserialize_versioned(::core::marker::PhantomData, de_versioned, version_map) {
                         Ok(v) => {
                             assert_eq!($value, v);
                             v

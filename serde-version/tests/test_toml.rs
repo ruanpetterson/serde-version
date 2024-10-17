@@ -1,5 +1,3 @@
-#![feature(min_specialization)]
-
 extern crate lazy_static;
 #[cfg_attr(feature = "toml-support", macro_use)]
 extern crate serde;

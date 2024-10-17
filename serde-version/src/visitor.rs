@@ -1,7 +1,10 @@
+use std::marker::PhantomData;
+
 use super::Error;
 use super::VersionedDeserializer;
 use crate::seed::VersionedSeed;
-use crate::{DeserializeVersioned, VersionMap};
+use crate::DeserializeVersionedSeed;
+use crate::VersionMap;
 use serde::de::{DeserializeSeed, EnumAccess, MapAccess, SeqAccess, VariantAccess, Visitor};
 use serde::{Deserialize, Deserializer};
 
@@ -23,15 +26,16 @@ impl<'v, V, VM> VersionedVisitor<'v, V, VM> {
 }
 
 macro_rules! forward_visit {
-        ($name:ident, $ty:ty) => {
-            #[inline]
-            fn $name<E>(self, v: $ty) -> Result<V::Value, E>
-                where E: serde::de::Error
-            {
-                self.visitor.$name(v)
-            }
+    ($name:ident, $ty:ty) => {
+        #[inline]
+        fn $name<E>(self, v: $ty) -> Result<V::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            self.visitor.$name(v)
         }
-    }
+    };
+}
 
 impl<'de, V, VM> Visitor<'de> for VersionedVisitor<'de, V, VM>
 where
@@ -170,8 +174,12 @@ where
     where
         T: Deserialize<'de>,
     {
-        <T as DeserializeVersioned<'de, VM>>::next_element(self, self.version_map.clone())
-            .map_err(|err| err.reduce())
+        <PhantomData<T> as DeserializeVersionedSeed<'de>>::next_element(
+            PhantomData,
+            self,
+            self.version_map.clone(),
+        )
+        .map_err(|err| err.reduce())
     }
 }
 
@@ -233,8 +241,12 @@ where
     where
         K: Deserialize<'de>,
     {
-        <K as DeserializeVersioned<'de, VM>>::next_key(self, self.version_map.clone())
-            .map_err(|err| err.reduce())
+        <PhantomData<K> as DeserializeVersionedSeed<'de>>::next_key(
+            PhantomData,
+            self,
+            self.version_map.clone(),
+        )
+        .map_err(|err| err.reduce())
     }
 
     #[inline]
@@ -242,8 +254,12 @@ where
     where
         V2: Deserialize<'de>,
     {
-        <V2 as DeserializeVersioned<'de, VM>>::next_value(self, self.version_map.clone())
-            .map_err(|err| err.reduce())
+        <PhantomData<V2> as DeserializeVersionedSeed<'de>>::next_value(
+            PhantomData,
+            self,
+            self.version_map.clone(),
+        )
+        .map_err(|err| err.reduce())
     }
 
     fn size_hint(&self) -> Option<usize> {
@@ -288,7 +304,7 @@ where
         V2: Deserialize<'de>,
     {
         let version_map = self.version_map.clone();
-        <V2 as DeserializeVersioned<'de, VM>>::variant(self, version_map)
+        <PhantomData<V2> as DeserializeVersionedSeed<'de>>::variant(PhantomData, self, version_map)
             .map_err(|err| err.reduce())
     }
 }

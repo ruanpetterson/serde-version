@@ -1,5 +1,3 @@
-#![feature(min_specialization)]
-
 #[macro_use]
 extern crate serde_version_derive;
 
@@ -8,9 +6,7 @@ mod common;
 
 use serde::Deserialize;
 use serde_test::Token;
-use serde_version::{
-    DefaultVersionMap, DeserializeVersioned, InvalidVersionError, VersionedDeserializer,
-};
+use serde_version::{DefaultVersionMap, InvalidVersionError, VersionedDeserializer};
 use std::fmt::Debug;
 
 #[derive(Deserialize)]
