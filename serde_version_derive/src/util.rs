@@ -31,7 +31,7 @@ pub fn wrap_in_const(
             },
             None => quote! {
                 #[allow(unknown_lints)]
-                #[cfg_attr(feature = "cargo-clippy", allow(useless_attribute))]
+                #[allow(useless_attribute)]
                 #[allow(rust_2018_idioms)]
                 extern crate #source as #alias;
             },
